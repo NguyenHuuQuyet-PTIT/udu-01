@@ -144,6 +144,7 @@
 
   detail.addEventListener('pointermove', (e) => {
     if (!isOpened || e.target.closest('[data-no-autoscroll-toggle]')) return;
+    if (e.buttons === 0) return;
     if (Math.abs(e.clientY - pointerStartY) < 8) return;
     isPointerDragging = true;
     stopAutoScroll();
