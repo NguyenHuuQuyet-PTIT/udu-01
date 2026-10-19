@@ -14,6 +14,9 @@
   let autoScrollRaf = null;
   let lastFrameTime = 0;
   let scrollAccumulator = 0; // Tích lũy số thực sub-pixel để không bị làm tròn về 0
+  let pointerStartY = 0;
+  let isPointerDragging = false;
+  let ignoreNextPageClick = false;
   const AUTO_SCROLL_SPEED = 52; // Tốc độ cuộn tự động (52px / giây)
 
   // 1. Đồng bộ nút Phát / Dừng nhạc
@@ -119,7 +122,7 @@
     }
   }
 
-  // Dừng tự cuộn khi người dùng chủ động lăn chuột hoặc vuốt tay
+  // Dừng tự cuộn khi người dùng chủ động lăn chuột hoặc vuốt tay.
   window.addEventListener('wheel', () => stopAutoScroll(), { passive: true });
   window.addEventListener('touchmove', () => stopAutoScroll(), { passive: true });
   window.addEventListener('keydown', (e) => {
@@ -128,10 +131,30 @@
     }
   });
 
-  // Bấm vào khoảng trống trên trang để Bật / Tắt tự động cuộn
+  // Kéo trang chỉ dừng cuộn; không để click giả lập sau khi thả tay bật lại ngay.
+  detail.addEventListener('pointerdown', (e) => {
+    if (!isOpened || e.target.closest('[data-no-autoscroll-toggle]')) return;
+    pointerStartY = e.clientY;
+    isPointerDragging = false;
+  });
+
+  detail.addEventListener('pointermove', (e) => {
+    if (!isOpened || e.target.closest('[data-no-autoscroll-toggle]')) return;
+    if (Math.abs(e.clientY - pointerStartY) < 8) return;
+    isPointerDragging = true;
+    ignoreNextPageClick = true;
+    stopAutoScroll();
+  }, { passive: true });
+
+  // Bấm vào trang để bật / tắt tự động cuộn.
   detail.addEventListener('click', (e) => {
     if (!isOpened) return;
     if (e.target.closest('[data-no-autoscroll-toggle]')) return;
+    if (ignoreNextPageClick || isPointerDragging) {
+      ignoreNextPageClick = false;
+      isPointerDragging = false;
+      return;
+    }
     if (autoScrollActive) {
       stopAutoScroll();
     } else {
